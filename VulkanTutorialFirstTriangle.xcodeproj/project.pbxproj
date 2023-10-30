@@ -11,9 +11,9 @@
 		6CAF2B162AEC00A200A3F2C3 /* libglfw.3.3.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 6CAF2B152AEC00A200A3F2C3 /* libglfw.3.3.dylib */; };
 		6CAF2B192AEC010400A3F2C3 /* libvulkan.1.3.268.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 6CAF2B172AEC010400A3F2C3 /* libvulkan.1.3.268.dylib */; };
 		6CAF2B1A2AEC010400A3F2C3 /* libvulkan.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 6CAF2B182AEC010400A3F2C3 /* libvulkan.1.dylib */; };
-		6CAF2B1D2AEC018300A3F2C3 /* libvulkan.1.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 6CAF2B1B2AEC018300A3F2C3 /* libvulkan.1.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		6CAF2B1E2AEC018300A3F2C3 /* libvulkan.1.3.268.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 6CAF2B1C2AEC018300A3F2C3 /* libvulkan.1.3.268.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		6CAF2B202AEC01E600A3F2C3 /* libglfw.3.3.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 6CAF2B1F2AEC01E600A3F2C3 /* libglfw.3.3.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		6CAF2B1D2AEC018300A3F2C3 /* libvulkan.1.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 6CAF2B1B2AEC018300A3F2C3 /* libvulkan.1.dylib */; };
+		6CAF2B1E2AEC018300A3F2C3 /* libvulkan.1.3.268.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 6CAF2B1C2AEC018300A3F2C3 /* libvulkan.1.3.268.dylib */; };
+		6CAF2B202AEC01E600A3F2C3 /* libglfw.3.3.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 6CAF2B1F2AEC01E600A3F2C3 /* libglfw.3.3.dylib */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -32,6 +32,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		6C63E3172AEFFE4600804B40 /* VulkanTutorialFirstTriangle.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = VulkanTutorialFirstTriangle.entitlements; sourceTree = "<group>"; };
 		6CAF2B0A2AEBF33700A3F2C3 /* VulkanTutorialFirstTriangle */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = VulkanTutorialFirstTriangle; sourceTree = BUILT_PRODUCTS_DIR; };
 		6CAF2B0D2AEBF33700A3F2C3 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		6CAF2B152AEC00A200A3F2C3 /* libglfw.3.3.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libglfw.3.3.dylib; path = ../../../../../opt/homebrew/lib/libglfw.3.3.dylib; sourceTree = "<group>"; };
@@ -79,6 +80,7 @@
 		6CAF2B0C2AEBF33700A3F2C3 /* VulkanTutorialFirstTriangle */ = {
 			isa = PBXGroup;
 			children = (
+				6C63E3172AEFFE4600804B40 /* VulkanTutorialFirstTriangle.entitlements */,
 				6CAF2B0D2AEBF33700A3F2C3 /* main.cpp */,
 			);
 			path = VulkanTutorialFirstTriangle;
@@ -101,9 +103,9 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 6CAF2B112AEBF33700A3F2C3 /* Build configuration list for PBXNativeTarget "VulkanTutorialFirstTriangle" */;
 			buildPhases = (
-				6CAF2B082AEBF33700A3F2C3 /* CopyFiles */,
 				6CAF2B062AEBF33700A3F2C3 /* Sources */,
 				6CAF2B072AEBF33700A3F2C3 /* Frameworks */,
+				6CAF2B082AEBF33700A3F2C3 /* CopyFiles */,
 			);
 			buildRules = (
 			);
@@ -276,6 +278,8 @@
 		6CAF2B122AEBF33700A3F2C3 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = VulkanTutorialFirstTriangle/VulkanTutorialFirstTriangle.entitlements;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = WTADRXH9U8;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -296,6 +300,8 @@
 		6CAF2B132AEBF33700A3F2C3 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = VulkanTutorialFirstTriangle/VulkanTutorialFirstTriangle.entitlements;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = WTADRXH9U8;
 				ENABLE_HARDENED_RUNTIME = YES;
