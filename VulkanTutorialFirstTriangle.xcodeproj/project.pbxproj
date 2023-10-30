@@ -103,9 +103,9 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 6CAF2B112AEBF33700A3F2C3 /* Build configuration list for PBXNativeTarget "VulkanTutorialFirstTriangle" */;
 			buildPhases = (
+				6CAF2B082AEBF33700A3F2C3 /* CopyFiles */,
 				6CAF2B062AEBF33700A3F2C3 /* Sources */,
 				6CAF2B072AEBF33700A3F2C3 /* Frameworks */,
-				6CAF2B082AEBF33700A3F2C3 /* CopyFiles */,
 			);
 			buildRules = (
 			);
