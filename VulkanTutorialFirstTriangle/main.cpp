@@ -51,7 +51,7 @@ private:
         std::vector<VkExtensionProperties> supportedExtensions(extensionCount);
         vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, supportedExtensions.data());
         std::cout<<"Extension Count: "<<extensionCount<<" | ";
-        for(auto extension:supportedExtensions){
+        for(const auto& extension:supportedExtensions){
             std::cout<<extension.extensionName<<" | ";
         }
         std::cout<<std::endl;
@@ -69,7 +69,7 @@ private:
         //check if all requiered Extensions are supported
         for(const char* requiredExtension:requiredExtensions){
             bool extensionPresent=false;
-            for(auto supportedExtension:supportedExtensions)
+            for(const auto& supportedExtension:supportedExtensions)
             {
                 if(std::strcmp(requiredExtension, supportedExtension.extensionName)==0){
                     extensionPresent=true;
