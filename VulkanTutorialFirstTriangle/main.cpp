@@ -6,6 +6,11 @@
 #include <vector>
 #include <algorithm>
 #include <cstring>
+#include <optional>
+
+struct QueueFamilyIndices {
+    std::optional<uint32_t> graphicsFamily;
+};
 
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation",
@@ -188,7 +193,36 @@ private:
 
         std::vector<VkPhysicalDevice> devices(deviceCount);
         vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
-        std::cout << "to delete physical devices:" << deviceCount << std::endl;
+
+        for (const auto& device : devices) {
+            if (isDeviceSuitable(device)) {
+                physicalDevice = device;
+                break;
+            }
+        }
+
+        if (physicalDevice == VK_NULL_HANDLE) {
+            throw std::runtime_error("failed to find a suitable GPU!");
+        }
+    }
+
+    bool isDeviceSuitable(VkPhysicalDevice device) {
+        // We can check in this function if the device supports every feature we need.
+        // We should also rank the devices and pick the best one according to some score!
+        // For now we don't care as all VkPhysicalDevices support Vulkan we are good to go!
+        /*VkPhysicalDeviceProperties deviceProperties;
+        VkPhysicalDeviceFeatures deviceFeatures;
+        vkGetPhysicalDeviceProperties(device, &deviceProperties);
+        vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+
+        return deviceFeatures.geometryShader && deviceProperties.deviceType==VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU*/;
+        return true;
+    }
+
+    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device) {
+        QueueFamilyIndices indices;
+
+        return indices;
     }
 
     void mainLoop() {
