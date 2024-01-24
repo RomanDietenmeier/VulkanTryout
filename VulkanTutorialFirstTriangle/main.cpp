@@ -303,8 +303,9 @@ private:
         
         std::vector<const char*> requiredExtensions;
         
+        #ifdef __APPLE__
         requiredExtensions.emplace_back(VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME);
-        
+        #endif
 
         VkDeviceCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
