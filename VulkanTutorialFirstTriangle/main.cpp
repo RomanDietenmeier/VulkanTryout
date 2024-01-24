@@ -7,12 +7,14 @@
 #include <algorithm>
 #include <cstring>
 #include <optional>
+#include <set>
 
 struct QueueFamilyIndices {
     std::optional<uint32_t> graphicsFamily;
+    std::optional<uint32_t> presentationFamily;
 
     bool isComplete() {
-        return graphicsFamily.has_value();
+        return graphicsFamily.has_value() && presentationFamily.has_value();
     }
 };
 
@@ -53,9 +55,11 @@ private:
     GLFWwindow* window;
     VkInstance instance;
     VkDebugUtilsMessengerEXT debugMessenger;
+    VkSurfaceKHR surface;
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
     VkDevice device;
     VkQueue graphicsQueue;
+    VkQueue presentationQueue;
     
     void initWindow(){
         glfwInit(); //initialize GLFW library
@@ -68,6 +72,7 @@ private:
     void initVulkan() {
         createInstance();
         setupDebugMessenger();
+        createSurface();
         pickPhysicalDevice();
         createLogicalDevice();
     }
@@ -190,6 +195,12 @@ private:
         createInfo.pfnUserCallback = debugCallback;
     }
 
+    void createSurface() {
+        if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create window surface!");
+        }
+    }
+
     void pickPhysicalDevice() {
         uint32_t deviceCount = 0;
         vkEnumeratePhysicalDevices(instance, &deviceCount,nullptr);
@@ -239,8 +250,17 @@ private:
 
         int i = 0;
         for (const auto& queueFamily : queueFamilies) {
+            //Apparently it is more performant if the Graphics and presentation queue are on the same queue. Thus, asigning both the same index is a good thing.
+
             if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {   // V K_QUEUE_GRAPHICS_BIT -> we need to be able to do graphics operations!
                 indices.graphicsFamily = i;
+            }
+
+            VkBool32 presentationSupport = false;
+            vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentationSupport);
+
+            if (presentationSupport) {
+                indices.presentationFamily = i;
             }
 
             if (indices.isComplete()) {
@@ -258,22 +278,30 @@ private:
     void createLogicalDevice() {
         QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
 
-        VkDeviceQueueCreateInfo queueCreateInfo{};
-        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        // For now we only want one graphics Queue: 
-        queueCreateInfo.queueFamilyIndex = indices.graphicsFamily.value();
-        queueCreateInfo.queueCount = 1;
-
+        std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+        std::set<uint32_t> uniqueQueueFamilies = { indices.graphicsFamily.value(),indices.presentationFamily.value() };
+        
+        //this variable is not in the for loop to retain its lifetime
         float queuePriority = 1.0f;
-        queueCreateInfo.pQueuePriorities = &queuePriority;
+
+        for (uint32_t queueFamily : uniqueQueueFamilies) {
+            VkDeviceQueueCreateInfo queueCreateInfo{};
+            queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+            queueCreateInfo.queueFamilyIndex = queueFamily;
+            //For now we only want one Queue per queueFamily:
+            queueCreateInfo.queueCount = 1;
+            queueCreateInfo.pQueuePriorities = &queuePriority;
+
+            queueCreateInfos.push_back(queueCreateInfo);
+        }
 
         //currently we need no VulkanFeature, but we will come back here:
         VkPhysicalDeviceFeatures deviceFeatures{};
 
         VkDeviceCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-        createInfo.pQueueCreateInfos = &queueCreateInfo;
-        createInfo.queueCreateInfoCount = 1;
+        createInfo.pQueueCreateInfos = queueCreateInfos.data();
+        createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
         createInfo.pEnabledFeatures = &deviceFeatures;
         //We do not use device specific Extensions for now:
         createInfo.enabledExtensionCount = 0;
@@ -289,8 +317,9 @@ private:
             throw std::runtime_error("failed to create logical device!");
         }
 
-        // 0 is the index of the the graphic Queues we gonna use. We hard code 0 here as we only have one graphics Queue.
+        // 0 is the index of the the Queues we gonna use. We hard code 0 here as we only have one Queue for each family.
         vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
+        vkGetDeviceQueue(device, indices.presentationFamily.value(), 0, &presentationQueue);
     }
 
     void mainLoop() {
@@ -311,8 +340,8 @@ private:
             }
         }
 
+        vkDestroySurfaceKHR(instance, surface, nullptr);
         vkDestroyInstance(instance,nullptr);
-
         glfwDestroyWindow(window);
         glfwTerminate();
     }
