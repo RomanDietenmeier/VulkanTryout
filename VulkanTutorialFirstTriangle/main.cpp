@@ -1,5 +1,6 @@
-#define GLFW_INCLUDE_VULKAN //#include <vulkan/vulkan.h> is not needed with this and the following line
+#define GLFW_INCLUDE_VULKAN //does this and some more in the include glfw3 line: #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
+#include <vulkan/vulkan_beta.h> //needed for Mac: includes the PORTABILITY_SUBSET_EXTENSION
 #include <iostream>
 #include <stdexcept>
 #include <cstdlib>
@@ -93,6 +94,8 @@ private:
             requiredExtensions.emplace_back(glfwExtensions[i]);
         }
         requiredExtensions.emplace_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+        requiredExtensions.emplace_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+
         if (enableValidationLayers) {
             requiredExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
         }
@@ -297,14 +300,20 @@ private:
 
         //currently we need no VulkanFeature, but we will come back here:
         VkPhysicalDeviceFeatures deviceFeatures{};
+        
+        std::vector<const char*> requiredExtensions;
+        
+        requiredExtensions.emplace_back(VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME);
+        
 
         VkDeviceCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
         createInfo.pQueueCreateInfos = queueCreateInfos.data();
         createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
         createInfo.pEnabledFeatures = &deviceFeatures;
-        //We do not use device specific Extensions for now:
-        createInfo.enabledExtensionCount = 0;
+        createInfo.enabledExtensionCount = (uint32_t)requiredExtensions.size();
+        createInfo.ppEnabledExtensionNames=requiredExtensions.data();
+        
         if (enableValidationLayers) {
             createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
             createInfo.ppEnabledLayerNames = validationLayers.data();
