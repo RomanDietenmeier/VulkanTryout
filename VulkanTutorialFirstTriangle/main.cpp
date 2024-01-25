@@ -19,8 +19,22 @@ struct QueueFamilyIndices {
     }
 };
 
+struct SwapChainSupportDetails {
+    VkSurfaceCapabilitiesKHR capabilities;
+    std::vector<VkSurfaceFormatKHR> formats;
+    std::vector<VkPresentModeKHR> presentModes;
+};
+
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation",
+
+};
+
+std::vector<const char*> requiredDeviceExtensions = {
+    VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+    #ifdef __APPLE__
+    VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME,
+    #endif
 };
 
 
@@ -239,7 +253,16 @@ private:
         return deviceFeatures.geometryShader && deviceProperties.deviceType==VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU*/;
 
         QueueFamilyIndices indices = findQueueFamilies(device);
-        return indices.isComplete();
+        bool extensionsSupported = checkDeviceExtensionSupport(device);
+        bool swapChainAdequate = false;
+
+        if (extensionsSupported) {  //only query for SwapChain if the extensions are supported
+            SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device);
+            //ensuring that there is at least one supported image format and presentation mode is enough
+            swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
+        }
+
+        return indices.isComplete() && extensionsSupported && swapChainAdequate;
     }
 
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device) {
@@ -278,6 +301,46 @@ private:
         return indices;
     }
 
+    bool checkDeviceExtensionSupport(VkPhysicalDevice device) {
+        uint32_t extensionCount = 0;
+        vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
+
+        std::vector<VkExtensionProperties> availableExtensions(extensionCount);
+        vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
+
+        std::set<std::string> requiredExtensionsSet(requiredDeviceExtensions.begin(), requiredDeviceExtensions.end());
+
+        for (const auto& extension : availableExtensions) {
+            requiredExtensionsSet.erase(extension.extensionName);
+        }
+
+        return requiredExtensionsSet.empty();
+    }
+
+    SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device) {
+        SwapChainSupportDetails details;
+
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
+
+        uint32_t formatCount = 0;
+        vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
+
+        if (formatCount != 0) {
+            details.formats.resize(formatCount);
+            vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details.formats.data());
+        }
+
+        uint32_t presentCount = 0;
+        vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentCount, nullptr);
+
+        if (presentCount != 0) {
+            details.presentModes.resize(presentCount);
+            vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentCount, details.presentModes.data());
+        }
+
+        return details;
+    }
+
     void createLogicalDevice() {
         QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
 
@@ -301,19 +364,14 @@ private:
         //currently we need no VulkanFeature, but we will come back here:
         VkPhysicalDeviceFeatures deviceFeatures{};
         
-        std::vector<const char*> requiredExtensions;
-        
-        #ifdef __APPLE__
-        requiredExtensions.emplace_back(VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME);
-        #endif
 
         VkDeviceCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
         createInfo.pQueueCreateInfos = queueCreateInfos.data();
         createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
         createInfo.pEnabledFeatures = &deviceFeatures;
-        createInfo.enabledExtensionCount = (uint32_t)requiredExtensions.size();
-        createInfo.ppEnabledExtensionNames=requiredExtensions.data();
+        createInfo.enabledExtensionCount = (uint32_t)requiredDeviceExtensions.size();
+        createInfo.ppEnabledExtensionNames= requiredDeviceExtensions.data();
         
         if (enableValidationLayers) {
             createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
