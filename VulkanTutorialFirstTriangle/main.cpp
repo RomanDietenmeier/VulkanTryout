@@ -75,6 +75,11 @@ private:
     VkDevice device;
     VkQueue graphicsQueue;
     VkQueue presentationQueue;
+
+    VkSwapchainKHR swapChain;
+    std::vector<VkImage> swapChainImages;
+    VkFormat swapChainImageFormat;
+    VkExtent2D swapChainExtent;
     
     void initWindow(){
         glfwInit(); //initialize GLFW library
@@ -90,6 +95,7 @@ private:
         createSurface();
         pickPhysicalDevice();
         createLogicalDevice();
+        createSwapChain();
     }
     
     void createInstance(){
@@ -390,6 +396,103 @@ private:
         vkGetDeviceQueue(device, indices.presentationFamily.value(), 0, &presentationQueue);
     }
 
+    void createSwapChain(){
+        SwapChainSupportDetails swapChainSupport = querySwapChainSupport(physicalDevice);
+
+        VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
+        VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
+        VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities);
+
+        
+        uint32_t imageCount = std::clamp((uint32_t)3, swapChainSupport.capabilities.minImageCount, (uint32_t)3); // for Triple Buffering we need at least 3 images ^^
+        if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) {
+            imageCount = swapChainSupport.capabilities.maxImageCount;
+        }
+
+        VkSwapchainCreateInfoKHR createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+        createInfo.surface = surface;
+        createInfo.minImageCount = imageCount;
+        createInfo.imageFormat = surfaceFormat.format;
+        createInfo.imageColorSpace = surfaceFormat.colorSpace;
+        createInfo.imageExtent = extent; 
+        createInfo.imageArrayLayers = 1; // Amount of layers each image consists of. Would be larger than one for stereoscopic 3D applications.
+        createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT; // If you would draw an extra image for post processing you may use VK_IMAGE_USAGE_TRANSFER_DST_BIT here.
+
+        QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+        uint32_t queueFamilyIndices[] = { indices.graphicsFamily.value(),indices.presentationFamily.value() };
+
+        if (indices.graphicsFamily != indices.presentationFamily) {
+            // We should use VK_SHARING_MODE_EXCLUSIVE here (better performance)! But we have not done the ownership chapters so we know no better >n<
+            createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+            createInfo.queueFamilyIndexCount = 2;
+            createInfo.pQueueFamilyIndices = queueFamilyIndices;
+        }
+        else { // the queues are actaully on the same queue ^^:
+            createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+            createInfo.queueFamilyIndexCount = 0; // optional when using VK_SHARING_MODE_EXCLUSIVE
+            createInfo.pQueueFamilyIndices = nullptr; // optional when using VK_SHARING_MODE_EXCLUSIVE
+        }
+        createInfo.preTransform = swapChainSupport.capabilities.currentTransform; // we could rotate or mirrow according to fixed angles if we wanted here: VkSurfaceTransformFlagBitsKHR.
+        createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR; // We do not want that our application blends with other applications: VkCompositeAlphaFlagBitsKHR.
+        createInfo.presentMode = presentMode;
+        createInfo.clipped = VK_TRUE; // this options says we do not care about pixels who might be under a different window. If this is needed we should disable this ^^. But it increases performance of course.
+        createInfo.oldSwapchain = VK_NULL_HANDLE; // if the window is resized or moved to a different monitor we might need to create a new swap chain and should state the old swap chain here. For now we will not do that ^^.
+
+        if (vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapChain) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create swap chain!");
+        }
+
+        vkGetSwapchainImagesKHR(device, swapChain, &imageCount, nullptr);
+        swapChainImages.resize(imageCount);
+        vkGetSwapchainImagesKHR(device, swapChain, &imageCount, swapChainImages.data());
+
+        swapChainImageFormat = surfaceFormat.format;
+        swapChainExtent = extent;
+    }   
+
+    VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
+        for (const auto& availableFormat : availableFormats) {
+            if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+                return availableFormat;
+            }
+        }
+
+
+        std::cout << "using random Swap Surface Format as we did not find 24+8Bit Alpha SRGB! Could also be that there isn't even a Format available!" << std::endl;
+        //If we do not find what we get we just use whatever, we should score each format and pick the next best one but I and the tutorial are to lazy!
+        return availableFormats[0];
+    }
+
+    VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) {
+        for (const auto& availablePresentMode : availablePresentModes) {
+            if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) { //this is Gaming mode ^^
+                return availablePresentMode;
+            }
+        }
+
+        //The FIFO Present Mode is garaunted so we use this one if we don't get Triple Buffering. Even though if we do not programm a game FIFO would be preferred to Triple Buffering as we do not need to draw more frames to reduce latency!
+        return VK_PRESENT_MODE_FIFO_KHR;
+    }
+
+    VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) {
+        if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
+            return capabilities.currentExtent; //if the width is not max uint32 then Vulkan sets the extent -> widht and height of the window!
+        }
+        int width, heigth;
+        glfwGetFramebufferSize(window, &width, &heigth);
+
+        VkExtent2D actualExtent = {
+            static_cast<uint32_t>(width),
+            static_cast<uint32_t>(heigth)
+        };
+
+        actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+        actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+
+        return actualExtent;
+    }
+
     void mainLoop() {
         while (!glfwWindowShouldClose(window)) {
             glfwPollEvents();
@@ -397,6 +500,7 @@ private:
     }
 
     void cleanup() {
+        vkDestroySwapchainKHR(device, swapChain, nullptr);
         vkDestroyDevice(device, nullptr);
         if (enableValidationLayers) {
             auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
