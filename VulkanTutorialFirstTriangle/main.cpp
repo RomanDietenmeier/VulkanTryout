@@ -80,6 +80,8 @@ private:
     std::vector<VkImage> swapChainImages;
     VkFormat swapChainImageFormat;
     VkExtent2D swapChainExtent;
+
+    std::vector<VkImageView> swapChainImageViews;
     
     void initWindow(){
         glfwInit(); //initialize GLFW library
@@ -96,6 +98,7 @@ private:
         pickPhysicalDevice();
         createLogicalDevice();
         createSwapChain();
+        createImageViews();
     }
     
     void createInstance(){
@@ -132,7 +135,7 @@ private:
             }
             
             if(!extensionPresent){
-                throw std::runtime_error(std::string("required Extension missing: ").append(requiredExtension));
+                throw std::runtime_error(std::string("Required Extension missing: ").append(requiredExtension));
             }
         }
         
@@ -187,7 +190,7 @@ private:
             }
 
             if (!layerFound) {
-                throw std::runtime_error(std::string("required Validation Layer missing: ").append(desiredLayerName));
+                throw std::runtime_error(std::string("Required Validation Layer missing: ").append(desiredLayerName));
                 return false;
             }
         }
@@ -229,7 +232,7 @@ private:
         vkEnumeratePhysicalDevices(instance, &deviceCount,nullptr);
 
         if (deviceCount <= 0) {
-            throw std::runtime_error("failed to find GPUs with Vulkan support!");
+            throw std::runtime_error("Failed to find GPUs with Vulkan support!");
         }
 
         std::vector<VkPhysicalDevice> devices(deviceCount);
@@ -243,7 +246,7 @@ private:
         }
 
         if (physicalDevice == VK_NULL_HANDLE) {
-            throw std::runtime_error("failed to find a suitable GPU!");
+            throw std::runtime_error("Failed to find a suitable GPU!");
         }
     }
 
@@ -388,7 +391,7 @@ private:
         }
 
         if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create logical device!");
+            throw std::runtime_error("Failed to create logical device!");
         }
 
         // 0 is the index of the the Queues we gonna use. We hard code 0 here as we only have one Queue for each family.
@@ -440,7 +443,7 @@ private:
         createInfo.oldSwapchain = VK_NULL_HANDLE; // if the window is resized or moved to a different monitor we might need to create a new swap chain and should state the old swap chain here. For now we will not do that ^^.
 
         if (vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapChain) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create swap chain!");
+            throw std::runtime_error("Failed to create swap chain!");
         }
 
         vkGetSwapchainImagesKHR(device, swapChain, &imageCount, nullptr);
@@ -493,6 +496,32 @@ private:
         return actualExtent;
     }
 
+    void createImageViews() {
+        swapChainImageViews.resize(swapChainImages.size());
+
+        for (size_t i = 0; i < swapChainImages.size(); i++) {
+            VkImageViewCreateInfo createInfo{};
+            createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+            createInfo.image = swapChainImages[i];
+            createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+            createInfo.format = swapChainImageFormat;
+            createInfo.components.r = VK_COMPONENT_SWIZZLE_R;
+            createInfo.components.g = VK_COMPONENT_SWIZZLE_G;
+            createInfo.components.b = VK_COMPONENT_SWIZZLE_B;
+            createInfo.components.a = VK_COMPONENT_SWIZZLE_A;
+            // specify that our images will be color targets
+            createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            createInfo.subresourceRange.baseMipLevel = 0; // We do not use Mip Mapping
+            createInfo.subresourceRange.levelCount = 1; // As we do not use Mip Mapping we only have on level
+            createInfo.subresourceRange.baseArrayLayer = 0;
+            createInfo.subresourceRange.layerCount = 1; // We do only use one layer per image
+
+            if (vkCreateImageView(device, &createInfo, nullptr, &swapChainImageViews[i]) != VK_SUCCESS) {
+                throw std::runtime_error("Failed to create image view!");
+            }
+        }
+    }
+
     void mainLoop() {
         while (!glfwWindowShouldClose(window)) {
             glfwPollEvents();
@@ -500,6 +529,9 @@ private:
     }
 
     void cleanup() {
+        for (auto imageView : swapChainImageViews) {
+            vkDestroyImageView(device, imageView, nullptr);
+        }
         vkDestroySwapchainKHR(device, swapChain, nullptr);
         vkDestroyDevice(device, nullptr);
         if (enableValidationLayers) {
