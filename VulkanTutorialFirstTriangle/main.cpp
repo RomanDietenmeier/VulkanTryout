@@ -546,6 +546,42 @@ private:
         std::vector<char> vertShaderByteCode = readFile("shaders/vert.spv");
         std::vector<char> fragShaderByteCode = readFile("shaders/frag.spv");
 
+        VkShaderModule vertShaderModule = createShaderModule(vertShaderByteCode);
+        VkShaderModule fragShaderModule = createShaderModule(fragShaderByteCode);
+
+        VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
+        vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+        vertShaderStageInfo.module = vertShaderModule;
+        vertShaderStageInfo.pName = "main";
+        vertShaderStageInfo.pSpecializationInfo = nullptr; // We can provide shader constants here for better perfomance. This is nullptr by default
+
+        VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
+        vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        vertShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+        vertShaderStageInfo.module = fragShaderModule;
+        vertShaderStageInfo.pName = "main";
+
+        VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo,fragShaderStageInfo };
+
+        //The shader modules can be destroyed after the creation of the GraphicsPipeline:
+        vkDestroyShaderModule(device,vertShaderModule,nullptr); 
+        vkDestroyShaderModule(device,fragShaderModule,nullptr); 
+    }
+
+    VkShaderModule createShaderModule(const std::vector<char>& byteCode) {
+        VkShaderModuleCreateInfo createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        createInfo.codeSize = byteCode.size();
+        createInfo.pCode = reinterpret_cast<const uint32_t*>(byteCode.data()); //reinterpret_cast does not cast and just treats it as the new type. Thus this line is hella sus!
+
+        VkShaderModule shaderModule;
+        if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create shader module!");
+        }
+        //the byteCodeBuffer can not be freed!
+
+        return shaderModule;
     }
 
     void mainLoop() {
