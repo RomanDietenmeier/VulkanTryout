@@ -9,6 +9,8 @@
 #include <cstring>
 #include <optional>
 #include <set>
+#include <fstream>
+
 
 struct QueueFamilyIndices {
     std::optional<uint32_t> graphicsFamily;
@@ -65,6 +67,23 @@ private:
         std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
 
         return VK_FALSE;    //Call the Vulkan call True or False!
+    }
+
+    static std::vector<char> readFile(const std::string& filename) {
+        std::ifstream file(filename, std::ios::ate | std::ios::binary); //ate seeks to the end of the file. We do that so that we can query the filesize via the read position of the file.
+
+        if (!file.is_open()) {
+            throw std::runtime_error("Failed to open file to read!");
+        }
+
+        size_t fileSize = (size_t)file.tellg();
+        std::vector<char> buffer(fileSize);
+
+        file.seekg(0);
+        file.read(buffer.data(), fileSize);
+        file.close();
+
+        return buffer;
     }
 
     GLFWwindow* window;
@@ -524,6 +543,8 @@ private:
     }
     
     void createGraphicsPipeline() {
+        std::vector<char> vertShaderByteCode = readFile("shaders/vert.spv");
+        std::vector<char> fragShaderByteCode = readFile("shaders/frag.spv");
 
     }
 
