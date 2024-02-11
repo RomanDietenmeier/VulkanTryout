@@ -101,6 +101,8 @@ private:
     VkExtent2D swapChainExtent;
 
     std::vector<VkImageView> swapChainImageViews;
+
+    VkPipelineLayout pipelineLayout;
     
     void initWindow(){
         glfwInit(); //initialize GLFW library
@@ -564,7 +566,87 @@ private:
 
         VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo,fragShaderStageInfo };
 
-        //The shader modules can be destroyed after the creation of the GraphicsPipeline:
+        std::vector<VkDynamicState> dynamicStates = {
+            VK_DYNAMIC_STATE_VIEWPORT,
+            VK_DYNAMIC_STATE_SCISSOR
+        };
+
+        VkPipelineDynamicStateCreateInfo dynamicState{};
+        dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+        dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
+        dynamicState.pDynamicStates = dynamicStates.data();
+
+        VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
+        vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+        vertexInputInfo.vertexAttributeDescriptionCount = 0;
+        vertexInputInfo.vertexBindingDescriptionCount = 0;
+        vertexInputInfo.pVertexAttributeDescriptions = nullptr; // Here struct Arrays can be specified on how to load the verticies. We do not load any verticies at the moment though!
+        vertexInputInfo.pVertexBindingDescriptions = nullptr;
+
+        VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
+        inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+        inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST; // This will use every 3 verticies to draw one rectangle. No verticies are reused for other triangles!
+        inputAssembly.primitiveRestartEnable = VK_FALSE; // We draw only triangles, no meshes, models, ... Thus we do not need this optimization. This should definetly enabled for Games though!
+
+        VkViewport viewport{};
+        viewport.x = 0.0f;
+        viewport.y = 0.0f;
+        viewport.width = (float)swapChainExtent.width;
+        viewport.height = (float)swapChainExtent.height;
+        viewport.minDepth = 0.0f; // Nearest depth
+        viewport.maxDepth = 1.0f; // Farest depth
+
+        VkRect2D scissor{};
+        scissor.offset = {0,0};
+        scissor.extent = swapChainExtent;
+
+        VkPipelineViewportStateCreateInfo viewportState{};
+        viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+        viewportState.viewportCount = 1;
+        viewportState.scissorCount = 1;
+
+        VkPipelineRasterizationStateCreateInfo rasterizer{}; // Turns verticies into fragments (basically pixels ;^) )
+        rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+        rasterizer.depthClampEnable = VK_FALSE; // Enabling depth clamping requires a GPU Feature. Also we do not want to clamp anything.
+        rasterizer.rasterizerDiscardEnable = VK_FALSE; // If True, Geometry won't be rasterized thus we won't see our Triangle.
+        rasterizer.polygonMode = VK_POLYGON_MODE_FILL; // We want to fill our Trianlges, could also show only the points or edges. Not using fill requires a GPU Feature to be enabled.
+        rasterizer.lineWidth = 1.0f; // Set the width of drawn lines to "1 pixel". Larger values than 1 require the "wideLines" GPU Feature to be enabled.
+        rasterizer.cullMode = VK_CULL_MODE_BACK_BIT; // We only want to see Faces from the front.
+        rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE; // Faces with positives areas are considered front facing, could also be set the other way around.
+        rasterizer.depthBiasEnable = VK_FALSE; // We do not want to alter depth values, thus set to false.
+
+        VkPipelineMultisampleStateCreateInfo multisampling{};
+        multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+        multisampling.sampleShadingEnable = VK_FALSE; 
+        multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT; // We disable Antialising for now.
+
+        // VkPipelineDepthStencilStateCreateInfo If we want to use a depth or stencil buffer we could add that here
+
+        VkPipelineColorBlendAttachmentState colorBlendAttachment{};
+        colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+        colorBlendAttachment.blendEnable = VK_FALSE; // We shall not blend just draw it without belnding anything -> just use the new thing from the fragment shader
+        colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+        colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
+        colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO; // Do not give a fuck about the value already in the framebuffer
+        colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+        colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+        colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+
+        VkPipelineColorBlendStateCreateInfo colorBlending{};
+        colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+        colorBlending.logicOpEnable = VK_FALSE; // if this is enabled Color blending will be disabled regardless of blendEnable in colorBlendAttachment. It still uses the colorWriteMask though. You can use "Logic Color Blending" here ;^)
+        colorBlending.attachmentCount = 1;
+        colorBlending.pAttachments = &colorBlendAttachment;
+
+        VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+        pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;   
+        // Uniforms have to be bound here but we do not have any.
+
+        if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create pipeline layout!");
+        }
+
+        // The shader modules can be destroyed after the creation of the GraphicsPipeline:
         vkDestroyShaderModule(device,vertShaderModule,nullptr); 
         vkDestroyShaderModule(device,fragShaderModule,nullptr); 
     }
@@ -591,6 +673,7 @@ private:
     }
 
     void cleanup() {
+        vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
         for (auto imageView : swapChainImageViews) {
             vkDestroyImageView(device, imageView, nullptr);
         }
