@@ -101,8 +101,10 @@ private:
     VkExtent2D swapChainExtent;
 
     std::vector<VkImageView> swapChainImageViews;
-
+    
+    VkRenderPass renderPass;
     VkPipelineLayout pipelineLayout;
+
     
     void initWindow(){
         glfwInit(); //initialize GLFW library
@@ -120,6 +122,7 @@ private:
         createLogicalDevice();
         createSwapChain();
         createImageViews();
+        createRenderPass();
         createGraphicsPipeline();
     }
     
@@ -543,6 +546,40 @@ private:
             }
         }
     }
+
+    void createRenderPass() {
+        VkAttachmentDescription colorAttachment{};
+        colorAttachment.format = swapChainImageFormat;
+        colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT; // Single color buffer represented by one image of the swap chain
+        //loadOp & storeOp affect color and depth data:
+        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR; // What to do with the attachment before it is being rendered. CLEAR means black framebuffer!
+        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE; // What to do with the attachment after it has been rendered. STORE so that we can see what we render on scren ^^.
+        //senctilLoad & Store affect stencil data:
+        colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED; // We do not care what the previous image layout is before the render pass. Thus we also do not care if the image will be preserved or not!
+        colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR; // Image is to be presented in the Swap Chain
+
+        VkAttachmentReference colorAttachmentRef{};
+        colorAttachmentRef.attachment = 0; // Reference the target AttachmentDescription by index
+        colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; // Performant color buffer
+
+        VkSubpassDescription subpass{};
+        subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        subpass.colorAttachmentCount = 1;
+        subpass.pColorAttachments = &colorAttachmentRef; // "layout(location = 0) out vec4 outColor" indexes here location=0 because we only have one attachment!
+
+        VkRenderPassCreateInfo renderPassInfo{};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+        renderPassInfo.attachmentCount = 1;
+        renderPassInfo.pAttachments = &colorAttachment;
+        renderPassInfo.subpassCount = 1;
+        renderPassInfo.pSubpasses = &subpass;
+
+        if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create render pass!");
+        }
+    }
     
     void createGraphicsPipeline() {
         std::vector<char> vertShaderByteCode = readFile("shaders/vert.spv");
@@ -674,6 +711,7 @@ private:
 
     void cleanup() {
         vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+        vkDestroyRenderPass(device, renderPass, nullptr);
         for (auto imageView : swapChainImageViews) {
             vkDestroyImageView(device, imageView, nullptr);
         }
