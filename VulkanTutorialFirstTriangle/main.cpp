@@ -186,8 +186,8 @@ private:
         appInfo.apiVersion = VK_API_VERSION_1_0;
         
         VkInstanceCreateInfo createInfo{};
-        createInfo.flags|=VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
         createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+        createInfo.flags|=VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
         createInfo.pApplicationInfo = &appInfo;
         createInfo.enabledExtensionCount = (uint32_t) requiredExtensions.size();
         createInfo.ppEnabledExtensionNames = requiredExtensions.data();
@@ -413,8 +413,8 @@ private:
 
         VkDeviceCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-        createInfo.pQueueCreateInfos = queueCreateInfos.data();
         createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
+        createInfo.pQueueCreateInfos = queueCreateInfos.data();
         createInfo.pEnabledFeatures = &deviceFeatures;
         createInfo.enabledExtensionCount = (uint32_t)requiredDeviceExtensions.size();
         createInfo.ppEnabledExtensionNames= requiredDeviceExtensions.data();
@@ -463,12 +463,11 @@ private:
         uint32_t queueFamilyIndices[] = { indices.graphicsFamily.value(),indices.presentationFamily.value() };
 
         if (indices.graphicsFamily != indices.presentationFamily) {
-            // We should use VK_SHARING_MODE_EXCLUSIVE here (better performance)! But we have not done the ownership chapters so we know no better >n<
-            createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+            createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT; // We should use VK_SHARING_MODE_EXCLUSIVE here (better performance)! But we have not done the ownership chapters so we know no better >n<
             createInfo.queueFamilyIndexCount = 2;
             createInfo.pQueueFamilyIndices = queueFamilyIndices;
         }
-        else { // the queues are actaully on the same queue ^^:
+        else { // the queues are actually on the same queue ^^:
             createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
             createInfo.queueFamilyIndexCount = 0; // optional when using VK_SHARING_MODE_EXCLUSIVE
             createInfo.pQueueFamilyIndices = nullptr; // optional when using VK_SHARING_MODE_EXCLUSIVE
@@ -637,8 +636,8 @@ private:
 
         VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
         vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-        vertexInputInfo.vertexAttributeDescriptionCount = 0;
         vertexInputInfo.vertexBindingDescriptionCount = 0;
+        vertexInputInfo.vertexAttributeDescriptionCount = 0;
         vertexInputInfo.pVertexAttributeDescriptions = nullptr; // Here struct Arrays can be specified on how to load the verticies. We do not load any verticies at the moment though!
         vertexInputInfo.pVertexBindingDescriptions = nullptr;
 
@@ -708,6 +707,7 @@ private:
         pipelineInfo.layout = pipelineLayout;
         pipelineInfo.renderPass = renderPass;
         pipelineInfo.subpass = 0; // index of subpass we want to use
+        
 
         if(vkCreateGraphicsPipelines(device,VK_NULL_HANDLE,1,&pipelineInfo,nullptr,&graphicsPipeline)!=VK_SUCCESS){
             throw std::runtime_error("Failed to create graphics pipeline!");
@@ -740,7 +740,7 @@ private:
         viewport.width = static_cast<float>(swapChainExtent.width);
         viewport.height = static_cast<float>(swapChainExtent.height);
         viewport.minDepth = 0.0f;
-        viewport.height = 1.0f;
+        viewport.maxDepth = 1.0f;
         return viewport;
     }
 
