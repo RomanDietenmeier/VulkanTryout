@@ -647,9 +647,6 @@ private:
         inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST; // This will use every 3 verticies to draw one rectangle. No verticies are reused for other triangles!
         inputAssembly.primitiveRestartEnable = VK_FALSE; // We draw only triangles, no meshes, models, ... Thus we do not need this optimization. This should definetly enabled for Games though!
 
-        VkViewport viewport = createViewport();
-        VkRect2D scissor = createScissor();
-
         VkPipelineViewportStateCreateInfo viewportState{};
         viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
         viewportState.viewportCount = 1;
